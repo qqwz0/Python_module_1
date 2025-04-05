@@ -169,3 +169,48 @@ class Database:
             self.tables[name] = table
         print("Transaction rolled back.")
         self.transaction_in_progress = False
+
+    
+     # Методи CRUD для роботи з динамічними моделями
+    def create(self, model_name, data):
+        """
+        Створює новий запис для заданої моделі.
+        """
+        if model_name not in self.tables:
+            # Для спрощення всі поля мають тип StringType, можна розширити логіку.
+            from .column import Column
+            from .datatypes import StringType
+            columns = [Column(key, StringType()) for key in data.keys()]
+            self.create_table(model_name, columns)
+        table = self.tables[model_name]
+        new_row = table.insert(data)
+        return new_row.data
+
+    def get(self, model_name, obj_id):
+        """
+        Повертає запис за ID для заданої моделі.
+        """
+        if model_name not in self.tables:
+            return None
+        table = self.tables[model_name]
+        row = table.get_by_id(obj_id)
+        return row.data if row else None
+
+    def update(self, model_name, obj_id, data):
+        """
+        Оновлює запис за ID для заданої моделі.
+        """
+        if model_name not in self.tables:
+            return None
+        table = self.tables[model_name]
+        row = table.update(obj_id, data)
+        return row.data if row else None
+
+    def delete(self, model_name, obj_id):
+        """
+        Видаляє запис за ID для заданої моделі.
+        """
+        if model_name not in self.tables:
+            return False
+        table = self.tables[model_name]
+        return table.delete(obj_id)
