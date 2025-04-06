@@ -143,6 +143,41 @@ class TestDatabase(unittest.TestCase):
         result = self.db.delete("users", 999)
         self.assertFalse(result)
 
+    def test_one_to_many_relationship(self):
+        # Створюємо Users
+        user = self.db.create("users", {"id": 1, "name": "Alice"})
+
+        # Створюємо Posts, які мають user_id
+        post1 = self.db.create("posts", {"id": 1, "title": "Post 1", "user_id": 1})
+        post2 = self.db.create("posts", {"id": 2, "title": "Post 2", "user_id": 1})
+
+        # Витягуємо всі пости, що належать користувачу
+        posts_table = self.db.tables["posts"]
+        related_posts = [row.data for row in posts_table.rows if row.data["user_id"] == 1]
+
+        self.assertEqual(len(related_posts), 2)
+        self.assertTrue(all(post["user_id"] == 1 for post in related_posts))
+
+    def test_many_to_many_relationship(self):
+        # Створюємо студентів і курси
+        student = self.db.create("students", {"id": 1, "name": "Bob"})
+        course1 = self.db.create("courses", {"id": 101, "title": "Math"})
+        course2 = self.db.create("courses", {"id": 102, "title": "Physics"})
+
+        # Створюємо таблицю зв’язку enrollments
+        enrollment1 = self.db.create("enrollments", {"student_id": 1, "course_id": 101})
+        enrollment2 = self.db.create("enrollments", {"student_id": 1, "course_id": 102})
+
+        # Витягуємо всі курси, на які записаний студент
+        enrollments_table = self.db.tables["enrollments"]
+        enrolled_course_ids = [e.data["course_id"] for e in enrollments_table.rows if e.data["student_id"] == 1]
+
+        courses_table = self.db.tables["courses"]
+        enrolled_courses = [c.data for c in courses_table.rows if c.data["id"] in enrolled_course_ids]
+
+        self.assertEqual(len(enrolled_courses), 2)
+        self.assertSetEqual({course["id"] for course in enrolled_courses}, {101, 102})
+
 
 if __name__ == "__main__":
     unittest.main()

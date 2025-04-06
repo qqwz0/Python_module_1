@@ -37,14 +37,14 @@ class Table:
             value = row_data.get(column_name)
             if value is not None and not column.data_type.validate(value):
                 raise ValueError(f"Invalid value for column {column_name}: {value}")
-        
-        row = Row(row_data)
-        row.id = self.next_id
+
+        row_data["id"] = self.next_id  # <-- Важливо: додай id у словник
         self.next_id += 1
 
+        row = Row(row_data)
         self.rows.append(row)
         return row
-    
+        
     def _check_value_type(self, column: Column, value: Any) -> bool:
         """
         Checks if the value is of the correct type for the column.

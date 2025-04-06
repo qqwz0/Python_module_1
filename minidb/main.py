@@ -81,5 +81,49 @@ def main():
     print(handle_request("/users/update", user_id=1, data={"name": "Daria Updated"}))
     print(handle_request("/users/delete", user_id=1))
 
+    # --- One-to-many: Author → Books ---
+    print("\n=== One-to-Many: Author -> Books ===")
+    default_db = DatabaseRegistry.get("default")
+    author = default_db.create("Author", {"name": "George Orwell"})
+    default_db.create("Book", {"title": "1984", "author_id": author["id"]})
+    default_db.create("Book", {"title": "Animal Farm", "author_id": author["id"]})
+    books = default_db.get_related_many("Author", "Book", "author_id", author["id"])
+    print(f"Books by {author['name']}:", books)
+
+    # --- Many-to-many: Students <-> Courses ---
+    print("\n=== Many-to-Many: Student <-> Course ===")
+    student1 = default_db.create("Student", {"name": "Anna"})
+    student2 = default_db.create("Student", {"name": "Mark"})
+    course1 = default_db.create("Course", {"title": "Math"})
+    course2 = default_db.create("Course", {"title": "Physics"})
+    
+    # Створимо зв’язки
+    default_db.add_many_to_many_relation("Enrollment", student1["id"], course1["id"])
+    default_db.add_many_to_many_relation("Enrollment", student1["id"], course2["id"])
+    default_db.add_many_to_many_relation("Enrollment", student2["id"], course1["id"])
+    
+    # Отримаємо курси для Anna
+    anna_courses = default_db.get_many_to_many_related("Enrollment", "from_id", "to_id", student1["id"], "Course")
+    print(f"{student1['name']} is enrolled in:", anna_courses)
+
+    # --- Транзакції: commit і rollback ---
+    print("\n=== Transactions ===")
+    try:
+        with default_db:
+            default_db.create("Log", {"message": "Start critical operation"})
+            raise Exception("Something went wrong")  # Симуляція фейлу
+            default_db.create("Log", {"message": "Operation succeeded"})
+    except:
+        print("Error caught!")
+
+    print("Logs after rollback:", default_db.tables.get("Log", []).rows if "Log" in default_db.tables else [])
+
+    print("\nTrying again with successful transaction:")
+    with default_db:
+        default_db.create("Log", {"message": "All good now!"})
+    print("Logs after commit:", [r.data for r in default_db.tables["Log"].rows])
+
+
+
 if __name__ == "__main__":
     main()

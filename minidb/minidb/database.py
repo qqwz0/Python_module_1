@@ -222,3 +222,45 @@ class Database:
             return False
         table = self.tables[model_name]
         return table.delete(obj_id)
+    
+    def get_related_many(self, from_model: str, to_model: str, foreign_key: str, from_id: int):
+        """
+        Отримує всі записи з to_model, які пов'язані з from_model через foreign_key.
+        Наприклад: get_related_many("Author", "Book", "author_id", 1)
+        """
+        if to_model not in self.tables:
+            return []
+
+        table = self.tables[to_model]
+        related = [row.data for row in table.rows if row.data.get(foreign_key) == from_id]
+        return related
+    
+    def add_many_to_many_relation(self, relation_table: str, from_id: int, to_id: int,
+                              from_key="from_id", to_key="to_id"):
+        """
+        Додає зв'язок у проміжну таблицю.
+        """
+        if relation_table not in self.tables:
+            self.create_table(relation_table, [
+                Column(from_key, IntegerType()),
+                Column(to_key, IntegerType())
+            ])
+        return self.tables[relation_table].insert({
+            from_key: from_id,
+            to_key: to_id
+        }).data
+
+    def get_many_to_many_related(self, relation_table: str, from_key: str, to_key: str,
+                                from_id: int, target_model: str):
+        """
+        Отримує пов'язані об'єкти з цільової таблиці на основі зв'язків у проміжній таблиці.
+        """
+        if relation_table not in self.tables or target_model not in self.tables:
+            return []
+
+        relation_rows = self.tables[relation_table].rows
+        related_ids = [r.data[to_key] for r in relation_rows if r.data[from_key] == from_id]
+
+        target_table = self.tables[target_model]
+        return [r.data for r in target_table.rows if r.data["id"] in related_ids]
+
