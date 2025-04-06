@@ -24,11 +24,11 @@ class Row:
     __repr__(self):
         Returns a string representation of the Row instance.
     """
-    _id_counter = 1  # Class variable to keep track of the next ID to assign
+    # _id_counter = 1  # Class variable to keep track of the next ID to assign
 
     def __init__(self, data: Dict[str, Any]):
-        self.id = Row._id_counter  # Assign a unique ID to the row
-        Row._id_counter += 1  # Increment the ID counter for the next row
+        # self.id = Row._id_counter  # Assign a unique ID to the row
+        # Row._id_counter += 1  # Increment the ID counter for the next row
         self.data = data  # Store the row data
 
     def __getitem__(self, key: str) -> Any:
@@ -41,4 +41,4 @@ class Row:
         return isinstance(other, Row) and self.data == other.data
 
     def __repr__(self):
-        return f"Row(id={self.id}, data={self.data})"
+        return f"Row(data={self.data})"

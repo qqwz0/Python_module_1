@@ -30,17 +30,30 @@ class Table:
         self.next_id = 1
 
     def insert(self, row_data: Dict[str, Any]) -> Row:
-        """
-        Inserts a new row into the table.
-        """
+        row_data = row_data.copy()  # Avoid modifying the input dictionary
+
+        # Handle 'id' field
+        provided_id = row_data.get('id')
+        if provided_id is not None:
+            if not isinstance(provided_id, int):
+                raise ValueError("ID must be an integer.")
+            if self.get_by_id(provided_id) is not None:
+                raise ValueError(f"Row with id {provided_id} already exists.")
+            # Update next_id if the provided ID is higher or equal
+            if provided_id >= self.next_id:
+                self.next_id = provided_id + 1
+        else:
+            # Auto-generate ID if not provided
+            row_data['id'] = self.next_id
+            self.next_id += 1
+
+        # Validate data against column types
         for column_name, column in self.columns.items():
             value = row_data.get(column_name)
             if value is not None and not column.data_type.validate(value):
                 raise ValueError(f"Invalid value for column {column_name}: {value}")
 
-        row_data["id"] = self.next_id  # <-- Важливо: додай id у словник
-        self.next_id += 1
-
+        # Create and store the row
         row = Row(row_data)
         self.rows.append(row)
         return row
@@ -60,10 +73,10 @@ class Table:
         return self.rows[index] if 0 <= index < len(self.rows) else None
 
     def get_by_id(self, row_id: int) -> Union[Row, None]:
-        """
-        Retrieves a row by its ID.
-        """
-        return next((row for row in self.rows if row.id == row_id), None)
+        for row in self.rows:
+            if row.data.get("id") == row_id:
+                return row
+        return None
     
     def get_column(self, column_name: str) -> Column:
         # Get the Column object by name
@@ -73,16 +86,17 @@ class Table:
         raise ValueError(f"Column {column_name} not found.")
 
     def update(self, row_id: int, row_data: Dict[str, Any]) -> Union[Row, None]:
-        """
-        Updates an existing row by its ID.
-        """
         row = self.get_by_id(row_id)
         if row is None:
             raise ValueError(f"Row with id {row_id} not found.")
 
+        row_data = row_data.copy()
+        if 'id' in row_data:
+            del row_data['id']
+
         for column_name, column in self.columns.items():
             value = row_data.get(column_name)
-            if value is not None and not column.validate(value):
+            if value is not None and not column.data_type.validate(value):
                 raise ValueError(f"Invalid value for column {column_name}: {value}")
 
         row.data.update(row_data)
