@@ -1,3 +1,4 @@
+# models/base_model.py
 """
 Модуль, що містить BaseModel та приклади користувацьких моделей.
 """
@@ -28,7 +29,7 @@ class BaseModel(metaclass=BaseModelMeta):
 
     def to_dict(self):
         """Повертає словникове представлення моделі."""
-        return {k: v for k, v in self.__dict__.items()}
+        return self.__dict__
 
     @classmethod
     def use_db(cls, db_name):
@@ -49,10 +50,8 @@ class BaseModel(metaclass=BaseModelMeta):
         :param data: Дані для створення об'єкта.
         :return: Екземпляр моделі.
         """
-        created_obj_data = cls._db_instance.create(cls.__name__, data)
-        created_obj_data["id"] = created_obj_data.get("id", None)  # Ensure id is included
-        return cls(**created_obj_data)
-
+        created_data = cls._db_instance.create(cls.__name__, data)
+        return cls(**created_data)
 
     @classmethod
     def get(cls, obj_id):
@@ -61,9 +60,9 @@ class BaseModel(metaclass=BaseModelMeta):
         :param obj_id: ID об'єкта.
         :return: Екземпляр моделі або None.
         """
-        obj_data = cls._db_instance.get(cls.__name__, obj_id)
-        if obj_data:
-            return cls(**obj_data)
+        data = cls._db_instance.get(cls.__name__, obj_id)
+        if data:
+            return cls(**data)
         return None
 
     @classmethod
@@ -76,7 +75,7 @@ class BaseModel(metaclass=BaseModelMeta):
         """
         updated_data = cls._db_instance.update(cls.__name__, obj_id, data)
         if updated_data:
-            return cls(**updated_data)  # Ensure updated data is passed back to the model
+            return cls(**updated_data)
         return None
 
     @classmethod
@@ -84,9 +83,10 @@ class BaseModel(metaclass=BaseModelMeta):
         """
         Видаляє об'єкт за його ID.
         :param obj_id: ID об'єкта.
-        :return: Булеве значення успішності операції.
+        :return: True, якщо операцію видалення виконано успішно, інакше False.
         """
         return cls._db_instance.delete(cls.__name__, obj_id)
+
 
 # Приклад користувацьких моделей
 class User(BaseModel):
@@ -94,11 +94,11 @@ class User(BaseModel):
     Модель користувача.
     Атрибути: id, name, email.
     """
-    pass  # Атрибути визначаються динамічно
+    pass
 
 class Product(BaseModel):
     """
     Модель продукту.
     Атрибути: id, title, price.
     """
-    pass  # Атрибути визначаються динамічно
+    pass
