@@ -50,7 +50,9 @@ class BaseModel(metaclass=BaseModelMeta):
         :return: Екземпляр моделі.
         """
         created_obj_data = cls._db_instance.create(cls.__name__, data)
+        created_obj_data["id"] = created_obj_data.get("id", None)  # Ensure id is included
         return cls(**created_obj_data)
+
 
     @classmethod
     def get(cls, obj_id):
@@ -74,7 +76,7 @@ class BaseModel(metaclass=BaseModelMeta):
         """
         updated_data = cls._db_instance.update(cls.__name__, obj_id, data)
         if updated_data:
-            return cls(**updated_data)
+            return cls(**updated_data)  # Ensure updated data is passed back to the model
         return None
 
     @classmethod

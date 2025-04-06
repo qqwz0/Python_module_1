@@ -174,17 +174,25 @@ class Database:
      # Методи CRUD для роботи з динамічними моделями
     def create(self, model_name, data):
         """
-        Створює новий запис для заданої моделі.
+        Creates a new record for a given model. When the model (table) does not exist,
+        the table is dynamically created and appropriate data types are determined based on the values.
         """
         if model_name not in self.tables:
-            # Для спрощення всі поля мають тип StringType, можна розширити логіку.
-            from .column import Column
-            from .datatypes import StringType
-            columns = [Column(key, StringType()) for key in data.keys()]
+            columns = []
+            for key, value in data.items():
+                # Determine the datatype based on the type of value
+                if isinstance(value, int):
+                    dtype = IntegerType()
+                elif isinstance(value, bool):
+                    dtype = BooleanType()
+                elif isinstance(value, str):
+                    dtype = StringType()
+                columns.append(Column(key, dtype))
             self.create_table(model_name, columns)
         table = self.tables[model_name]
         new_row = table.insert(data)
         return new_row.data
+
 
     def get(self, model_name, obj_id):
         """

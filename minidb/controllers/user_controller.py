@@ -31,10 +31,14 @@ def update_user(user_id, data):
     :param data: Словник з новими даними.
     :return: Словникове представлення оновленого користувача або повідомлення про помилку.
     """
-    user = User.update(user_id, **data)
-    if user:
-        return user.to_dict()
-    return {"error": "User not found or update failed"}
+    try:
+        user = User.update(user_id, **data)  # Make sure to pass user_id properly
+        if user:
+            return user.to_dict()  # Return the updated data as a dictionary
+        return {"error": "User not found or update failed"}
+    except ValueError as e:
+        return {"error": str(e)}
+
 
 def delete_user(user_id):
     """

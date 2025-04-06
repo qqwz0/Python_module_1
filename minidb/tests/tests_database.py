@@ -98,5 +98,51 @@ class TestDatabase(unittest.TestCase):
                 with self.db as db2:  # Trying to start another transaction
                     pass
 
+    def test_crud_create(self):
+        """Test creating a new record with dynamic model creation"""
+        data = {"id": 1, "name": "Alice"}
+        result = self.db.create("employees", data)
+        self.assertEqual(result, data)
+        self.assertIn("employees", self.db.tables)
+        self.assertEqual(len(self.db.tables["employees"].rows), 1)
+
+    def test_crud_get(self):
+        """Test retrieving a record by ID"""
+        self.db.create("users", {"id": 1, "name": "Alice"})
+        result = self.db.get("users", 1)
+        self.assertEqual(result, {"id": 1, "name": "Alice"})
+
+    def test_crud_update(self):
+        """Test updating a record by ID"""
+        self.db.create("users", {"id": 1, "name": "Alice"})
+        updated = self.db.update("users", 1, {"name": "Bob"})
+        self.assertEqual(updated["name"], "Bob")
+        self.assertEqual(self.db.get("users", 1)["name"], "Bob")
+
+    def test_crud_delete(self):
+        """Test deleting a record by ID"""
+        self.db.create("users", {"id": 1, "name": "Alice"})
+        deleted = self.db.delete("users", 1)
+        self.assertTrue(deleted)
+        self.assertIsNone(self.db.get("users", 1))
+
+    def test_crud_get_nonexistent(self):
+        """Test getting a non-existent record"""
+        result = self.db.get("users", 999)
+        self.assertIsNone(result)
+
+    def test_crud_update_nonexistent(self):
+        with self.assertRaises(ValueError) as context:
+            self.db.update("users", 999, {"name": "Ghost"})
+
+        self.assertIn("Row with id 999 not found.", str(context.exception))
+
+
+    def test_crud_delete_nonexistent(self):
+        """Test deleting a non-existent record"""
+        result = self.db.delete("users", 999)
+        self.assertFalse(result)
+
+
 if __name__ == "__main__":
     unittest.main()
