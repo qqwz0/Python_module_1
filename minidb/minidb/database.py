@@ -2,6 +2,7 @@ from typing import List
 from .table import Table
 from .column import Column
 from .datatypes import IntegerType, StringType, BooleanType, DateType
+from .row import Row
 import json
 
 class Database:
@@ -31,31 +32,39 @@ class Database:
 
     @classmethod
     def from_json(cls, filename: str):
-        """
-        Load a database from a JSON file.
+        type_mapping = {
+            "IntegerType": IntegerType,
+            "StringType": StringType,
+            "BooleanType": BooleanType,
+            "DateType": DateType
+        }
 
-        :param filename: The JSON file to load.
-        :return: A Database instance populated with data.
-        """
         with open(filename, "r", encoding="utf-8") as f:
             data = json.load(f)
 
-        if "name" not in data or "tables" not in data:
-            raise ValueError("Invalid database format. Missing 'name' or 'tables'.")
-
         db = cls(data["name"])
 
-        # Відновлення таблиць
-        for table_name, rows in data["tables"].items():
+        # Safely get 'next_ids' from data, defaulting to an empty dict if missing
+        next_ids = data.get("next_ids", {})
+
+        for table_name in data["tables"]:
+            # Restore columns
             columns = []
-            for column_data in data["columns"][table_name]:
-                column = Column(column_data["name"], eval(column_data["type"])())  # Динамічне створення типу
-                columns.append(column)
-
-            table = db.create_table(table_name, columns)
-
-            for row in rows:
-                table.insert(row)
+            for column_info in data["columns"][table_name]:
+                column_type = type_mapping[column_info["type"]]()
+                columns.append(Column(column_info["name"], column_type))
+            
+            # Create table
+            table = Table(table_name, columns)
+            db.tables[table_name] = table
+            
+            # Restore rows
+            for row_data in data["tables"][table_name]:
+                row = Row({k: v for k, v in row_data.items()})
+                table.rows.append(row)
+            
+            # Restore next_id, defaulting to 1 if missing
+            table.next_id = next_ids.get(table_name, 1)
 
         return db
 
@@ -90,23 +99,31 @@ class Database:
             raise ValueError(f"Table {name} does not exist.")
 
     def save(self, filename: str):
-        """
-        Save the current state of the database to a JSON file.
-        """
-        print(self.tables)
-        print(self.tables.items())  # Подивимося, що зберігається у self.tables
-
         data = {
-            "name": self.name,  # Додаємо ім'я бази даних
-            "tables": {name: [row.data for row in table.rows] for name, table in self.tables.items()}
+            "name": self.name,
+            "tables": {},
+            "columns": {},
+            "next_ids": {}
         }
-        data["columns"] = {
-            name: [{"name": getattr(col, "name", col), "type": type(col.data_type).__name__}
-                for col in table.columns.values()]
-            for name, table in self.tables.items()
-        }
+
+        for name, table in self.tables.items():
+            # Зберігаємо дані рядків
+            data["tables"][name] = [row.data for row in table.rows]
+            
+            # Зберігаємо інформацію про колонки
+            data["columns"][name] = [
+                {
+                    "name": col.name,
+                    "type": type(col.data_type).__name__
+                } 
+                for col in table.columns.values()
+            ]
+            
+            # Зберігаємо наступний ID для таблиці
+            data["next_ids"][name] = table.next_id
+
         with open(filename, "w", encoding="utf-8") as f:
-            json.dump(data, f, indent=4, ensure_ascii=False)
+            json.dump(data, f, indent=4, default=str, ensure_ascii=False)
 
     def __enter__(self):
         """

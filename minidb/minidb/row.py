@@ -1,5 +1,5 @@
 from typing import Any, Dict
-
+import json
 class Row:
     """
     A class to represent a row in a mini database.
@@ -29,7 +29,7 @@ class Row:
     def __init__(self, data: Dict[str, Any]):
         # self.id = Row._id_counter  # Assign a unique ID to the row
         # Row._id_counter += 1  # Increment the ID counter for the next row
-        self.data = data  # Store the row data
+        self.data = data.copy()  # Store the row data
 
     def __getitem__(self, key: str) -> Any:
         return self.data.get(key, None)
@@ -40,5 +40,7 @@ class Row:
     def __eq__(self, other):
         return isinstance(other, Row) and self.data == other.data
 
+    # def __repr__(self):
+    #     return f"Row(data={self.data})"
     def __repr__(self):
-        return f"Row(data={self.data})"
+        return json.dumps(self.data, default=str)
